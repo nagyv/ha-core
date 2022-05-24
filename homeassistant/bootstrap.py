@@ -24,7 +24,7 @@ from .const import (
     SIGNAL_BOOTSTRAP_INTEGRATONS,
 )
 from .exceptions import HomeAssistantError
-from .helpers import area_registry, device_registry, entity_registry
+from .helpers import area_registry, device_registry, entity_registry, recorder
 from .helpers.dispatcher import async_dispatcher_send
 from .helpers.typing import ConfigType
 from .setup import (
@@ -67,6 +67,10 @@ LOGGING_INTEGRATIONS = {
     # Error logging
     "system_log",
     "sentry",
+    # Get the frontend up and running as soon as possible so problem
+    # integrations can be removed and database migration status is
+    # visible in frontend
+    "frontend",
     # To record data
     "recorder",
 }
@@ -84,10 +88,6 @@ STAGE_1_INTEGRATIONS = {
     "cloud",
     # Ensure supervisor is available
     "hassio",
-    # Get the frontend up and running as soon
-    # as possible so problem integrations can
-    # be removed
-    "frontend",
 }
 
 
@@ -508,6 +508,17 @@ async def _async_set_up_integrations(
 
     _LOGGER.info("Domains to be set up: %s", domains_to_setup)
 
+    # Load the registries
+    await asyncio.gather(
+        device_registry.async_load(hass),
+        entity_registry.async_load(hass),
+        area_registry.async_load(hass),
+    )
+
+    # Initialize recorder
+    if "recorder" in domains_to_setup:
+        recorder.async_initialize_recorder(hass)
+
     # Load logging as soon as possible
     if logging_domains := domains_to_setup & LOGGING_INTEGRATIONS:
         _LOGGER.info("Setting up logging: %s", logging_domains)
@@ -551,7 +562,7 @@ async def _async_set_up_integrations(
         """
         platform.uname().processor  # pylint: disable=expression-not-assigned
 
-    # Load the registries
+    # Load the registries and cache the result of platform.uname().processor
     await asyncio.gather(
         device_registry.async_load(hass),
         entity_registry.async_load(hass),
