@@ -103,7 +103,7 @@ async def test_shutdown_before_startup_finishes(
 
     recorder_helper.async_initialize_recorder(hass)
     hass.create_task(async_setup_recorder_instance(hass, config))
-    await hass.data[DOMAIN]["db_connected"]
+    await hass.data[DOMAIN].db_connected
 
     session = await hass.async_add_executor_job(hass.data[DATA_INSTANCE].get_session)
 
@@ -173,7 +173,7 @@ async def test_state_gets_saved_when_set_before_start_event(
 
     recorder_helper.async_initialize_recorder(hass)
     hass.create_task(async_setup_recorder_instance(hass))
-    await hass.data[DOMAIN]["db_connected"]
+    await hass.data[DOMAIN].db_connected
 
     entity_id = "test.recorder"
     state = "restoring_from_db"
